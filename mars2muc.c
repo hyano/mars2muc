@@ -33,8 +33,6 @@ bool g_opt_ignore_warning = false;
 
 #define BUFF_SIZE (16 * 1024)
 uint8_t g_data[BUFF_SIZE];
-uint32_t g_ssg_tempo_prev = UINT32_MAX;
-uint32_t g_ssg_tempo_count = 0;
 
 #ifdef USE_SSG_ENV_MACRO
 const char g_ssg_inst[] = 
