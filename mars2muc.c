@@ -68,8 +68,9 @@ const uint8_t g_ssg_env[12][6] =
 
 const driver_config_t g_driver_config[] =
 {
-    {"mars",    0xc000, 2,  13},
-    {"algarna", 0xec00, 0,  13},
+    {"mars",    0xc000, 0x02,   13},
+    {"algarna", 0xec00, 0x00,   13},
+    {"issural", 0xea00, 0x24,   13},
     {NULL,      0,      0,  0},
 };
 
@@ -424,8 +425,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
                 ll -= fprintf(fp, "&");
                 break;
             case 0xfe:
-                ll -= fprintf(fp, " ?fe? ");
-                o++;
+                ll -= fprintf(fp, "r%%%u", d[o++]);
                 break;
             case 0xff:
                 c = d[o++] & 0x03;
