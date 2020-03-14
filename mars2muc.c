@@ -485,7 +485,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
 
 void help(void)
 {
-    fprintf(stderr, "Usage: ds42muc [option(s)] file\n");
+    fprintf(stderr, "Usage: mars2muc [option(s)] file\n");
     fprintf(stderr, "  -h\t\tprint this help message and exit\n");
     fprintf(stderr, "  -v\t\tverbose (debug info)\n");
     fprintf(stderr, "  -w\t\tapply workaround and ignore warnings\n");
