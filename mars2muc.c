@@ -24,8 +24,6 @@ bool g_opt_ignore_warning = false;
 
 #define BUFF_SIZE (16 * 1024)
 uint8_t g_data[BUFF_SIZE];
-uint8_t g_loop_flag[BUFF_SIZE];
-uint8_t g_loop_nest[BUFF_SIZE];
 uint32_t g_ssg_tempo_prev = UINT32_MAX;
 uint32_t g_ssg_tempo_count = 0;
 
@@ -282,7 +280,7 @@ int print_length(FILE *fp, uint32_t clock, uint32_t deflen, uint32_t len)
 }
 
 void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
-                   const uint8_t *data, uint8_t *loop_flag)
+                   const uint8_t *data)
 {
     static const char *notestr[16] = {
         "c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b",
@@ -293,6 +291,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
     uint32_t o = get_word(&data[mo + ch * 4]);
     uint32_t eo = get_word(&data[mo + ch * 4 + 2]);
     uint32_t end;
+    uint32_t loop_offset = UINT32_MAX;
     uint32_t c;
     uint32_t prev_oct, oct, note, len;
     uint32_t clock, deflen;
@@ -303,7 +302,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
     o -= 0xc000;
     if (eo != 0)
     {
-        loop_flag[eo - 0xc000] = 1;
+        loop_offset = eo - 0xc000;
     }
     parse_music(data, o, &end, &clock, &deflen);
 
@@ -324,7 +323,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
             }
         }
 
-        if (loop_flag[o])
+        if (o == loop_offset)
         {
             ll -= fprintf(fp, " L ");
         }
@@ -617,9 +616,6 @@ int main(int argc, char *argv[])
     fprintf(fp, "\n");
 
     /* convert */
-    memset(g_loop_flag, 0, sizeof(g_loop_flag));
-    memset(g_loop_nest, 0, sizeof(g_loop_nest));
-
 #ifdef USE_SSG_ENV_MACRO
     fprintf(fp, "%s", g_ssg_inst);
 #endif /* USE_SSG_ENV_MACRO */
@@ -632,7 +628,7 @@ int main(int argc, char *argv[])
             fp,
             music, 
             ch, chname[ch],
-            data, g_loop_flag);
+            data);
     }
     fclose(fp);
 
