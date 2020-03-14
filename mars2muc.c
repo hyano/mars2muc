@@ -18,6 +18,15 @@
 /* use macro instead of expanding envelope command. */
 #define USE_SSG_ENV_MACRO
 
+/* typedef(s) */
+typedef struct 
+{
+    const char *name;
+    uint32_t data_addr;
+    uint32_t table_offset;
+    uint32_t table_size;
+} driver_config_t;
+
 /* global option(s) */
 bool g_opt_verbose = false;
 bool g_opt_ignore_warning = false;
@@ -57,6 +66,13 @@ const uint8_t g_ssg_env[12][6] =
     {0x64, 0x64, 0xff, 0xff, 0x01, 0x0a},
     {0x28, 0x02, 0xff, 0xf0, 0x00, 0x0a},
     {0xff, 0xff, 0xff, 0xc8, 0x01, 0x0a},
+};
+
+const driver_config_t g_driver_config[] =
+{
+    {"mars",    0xc000, 2,  13},
+    {"algarna", 0xec00, 0,  13},
+    {NULL,      0,      0,  0},
 };
 
 int DBG(const char *format, ...)
@@ -280,14 +296,14 @@ int print_length(FILE *fp, uint32_t clock, uint32_t deflen, uint32_t len)
 }
 
 void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
-                   const uint8_t *data)
+                   const uint8_t *data, const driver_config_t *config)
 {
     static const char *notestr[16] = {
         "c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b",
         "?", "?", "?", "?"
     };
     const uint8_t *d = data;
-    uint32_t mo = 2 + music * 13;
+    uint32_t mo = config->table_offset + music * config->table_size;
     uint32_t o = get_word(&data[mo + ch * 4]);
     uint32_t eo = get_word(&data[mo + ch * 4 + 2]);
     uint32_t end;
@@ -299,10 +315,10 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
     bool quit = false;
     int ll;
 
-    o -= 0xc000;
+    o -= config->data_addr;
     if (eo != 0)
     {
-        loop_offset = eo - 0xc000;
+        loop_offset = eo - config->data_addr;
     }
     parse_music(data, o, &end, &clock, &deflen);
 
@@ -496,6 +512,9 @@ void help(void)
     fprintf(stderr, "  -c COMPOSER\tcomposer for tag\n");
     fprintf(stderr, "  -d DATE\tdate for tag\n");
     fprintf(stderr, "  -C COMMENT\tcomment for tag\n");
+    fprintf(stderr, "  -F FORMAT\tfile format (default: mars)\n");
+    fprintf(stderr, "\t\t  mars     = THE CURSE OF MARS\n");
+    fprintf(stderr, "\t\t  algarna  = ALGARNA\n");
     exit(1);
 }
 
@@ -504,6 +523,7 @@ int main(int argc, char *argv[])
     int c;
     FILE *fp;
     uint8_t *data = &g_data[0x0000];
+    const driver_config_t *config = &g_driver_config[0];
     uint32_t music = 0;
     uint32_t ch;
     const char *chname[] = {"D", "E", "F"};
@@ -516,7 +536,7 @@ int main(int argc, char *argv[])
     const char *outfile = NULL;
 
     /* command line options */
-    while ((c = getopt(argc, argv, "vwo:n:m:t:a:c:d:C:")) != -1)
+    while ((c = getopt(argc, argv, "vwo:n:m:t:a:c:d:C:F:")) != -1)
     {
         switch (c)
         {
@@ -553,6 +573,17 @@ int main(int argc, char *argv[])
         case 'C':
             comment = optarg;
             break;
+        case 'F':
+            config = NULL;
+            for (int i = 0; g_driver_config[i].name != NULL; i++)
+            {
+                if (strcmp(optarg, g_driver_config[i].name) == 0)
+                {
+                    config = &g_driver_config[i];
+                    break;
+                }
+            }
+            break;
         default:
             help();
             break;
@@ -562,6 +593,12 @@ int main(int argc, char *argv[])
     if (optind != argc - 1)
     {
         help();
+    }
+
+    if (config == NULL)
+    {
+        fprintf(stderr, "Unknown driver type\n");
+        exit(1);
     }
 
     /* read data to buffer */
@@ -628,7 +665,7 @@ int main(int argc, char *argv[])
             fp,
             music, 
             ch, chname[ch],
-            data);
+            data, config);
     }
     fclose(fp);
 
