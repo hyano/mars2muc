@@ -68,9 +68,10 @@ const uint8_t g_ssg_env[12][6] =
 
 const driver_config_t g_driver_config[] =
 {
-    {"mars",    0xc000, 0x02,   13},
-    {"algarna", 0xec00, 0x00,   13},
-    {"issural", 0xea00, 0x24,   13},
+    {"mars",        0xc000, 0x0002, 13},
+    {"algarna",     0xec00, 0x0000, 13},
+    {"issural",     0xea00, 0x0024, 13},
+    {"m2ishtar",    0x8000, 0x08b1, 13},
     {NULL,      0,      0,  0},
 };
 
