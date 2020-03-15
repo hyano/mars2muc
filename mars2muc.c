@@ -25,6 +25,7 @@ typedef struct
     uint32_t data_addr;
     uint32_t table_offset;
     uint32_t table_size;
+    bool shift;
 } driver_config_t;
 
 /* global option(s) */
@@ -68,11 +69,11 @@ const uint8_t g_ssg_env[12][6] =
 
 const driver_config_t g_driver_config[] =
 {
-    {"mars",        0xc000, 0x0002, 13},
-    {"algarna",     0xec00, 0x0000, 13},
-    {"issural",     0xea00, 0x0024, 13},
-    {"m2ishtar",    0x8000, 0x08b1, 13},
-    {NULL,      0,      0,  0},
+    {"mars",        0xc000, 0x0002, 13, false},
+    {"algarna",     0xec00, 0x0000, 13, false},
+    {"issural",     0xea00, 0x0024, 13, false},
+    {"m2ishtar",    0x8000, 0x08b1, 13, true},
+    {NULL,          0x0000, 0x0000,  0, false},
 };
 
 int DBG(const char *format, ...)
@@ -302,6 +303,9 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
         "c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b",
         "?", "?", "?", "?"
     };
+    static const int16_t shift_table[12] = {
+        -441, -417, -393, -371, -350, -331, -312, -295, -278, -262, -248, -234
+    };
     const uint8_t *d = data;
     uint32_t mo = config->table_offset + music * config->table_size;
     uint32_t o = get_word(&data[mo + ch * 4]);
@@ -310,6 +314,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
     uint32_t loop_offset = UINT32_MAX;
     uint32_t c;
     uint32_t prev_oct, oct, note, len;
+    int16_t cur_detune, cur_shift, shift;
     uint32_t clock, deflen;
     bool init = false;
     bool quit = false;
@@ -324,6 +329,8 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
 
     ll = 0;
     prev_oct = 0xff;
+    cur_detune = 0;
+    cur_shift = 0;
 
     while (!quit)
     {
@@ -342,6 +349,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
         if (o == loop_offset)
         {
             ll -= fprintf(fp, " L ");
+            cur_shift = INT16_MAX;
         }
 
         c = d[o++];
@@ -363,7 +371,11 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
                 ll -= fprintf(fp, "v%u", d[o++]);
                 break;
             case 0xf2:
-                ll -= fprintf(fp, "D%d", (int16_t)get_word(&d[o]));
+                cur_detune = (int16_t)get_word(&d[o]);
+                if (!config->shift)
+                {
+                    ll -= fprintf(fp, "D%d", cur_detune);
+                }
                 o += 2;
                 break;
             case 0xf3:
@@ -393,6 +405,7 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
                 break;
             case 0xf5:
                 ll -= fprintf(fp, "[");
+                cur_shift = INT16_MAX;
                 o += 2;
                 break;
             case 0xf6:
@@ -486,6 +499,15 @@ void convert_music(FILE *fp, uint32_t music, uint32_t ch, const char *chname,
                     ll -= fprintf(fp, "o%u", oct);
                 }
                 prev_oct = oct;
+            }
+            if (config->shift)
+            {
+                shift = shift_table[note] + cur_detune;
+                if (shift != cur_shift)
+                {
+                    ll -= fprintf(fp, "D%d", shift);
+                    cur_shift = shift;
+                }
             }
             ll -= fprintf(fp, "%s", notestr[note]);
             ll -= print_length(fp, clock, deflen, len);
