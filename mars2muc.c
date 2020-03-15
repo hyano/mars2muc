@@ -534,8 +534,10 @@ void help(void)
     fprintf(stderr, "  -d DATE\tdate for tag\n");
     fprintf(stderr, "  -C COMMENT\tcomment for tag\n");
     fprintf(stderr, "  -F FORMAT\tfile format (default: mars)\n");
-    fprintf(stderr, "\t\t  mars     = THE CURSE OF MARS\n");
-    fprintf(stderr, "\t\t  algarna  = ALGARNA\n");
+    fprintf(stderr, "\t\t  mars      = THE CURSE OF MARS\n");
+    fprintf(stderr, "\t\t  algarna   = ALGARNA\n");
+    fprintf(stderr, "\t\t  issural   = ISSURAL\n");
+    fprintf(stderr, "\t\t  m2ishtar  = THE RETURN OF ISHTAR (MSX2)\n");
     exit(1);
 }
 
